@@ -183,6 +183,187 @@
     
     
     <article
+  id="post-分享一个我用Python做的连点器"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2025/02/20/%E5%88%86%E4%BA%AB%E4%B8%80%E4%B8%AA%E6%88%91%E7%94%A8Python%E5%81%9A%E7%9A%84%E8%BF%9E%E7%82%B9%E5%99%A8/"
+    >分享一个我用Python做的连点器</a> 
+</h2>
+ 
+
+      
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2025/02/20/%E5%88%86%E4%BA%AB%E4%B8%80%E4%B8%AA%E6%88%91%E7%94%A8Python%E5%81%9A%E7%9A%84%E8%BF%9E%E7%82%B9%E5%99%A8/" class="article-date">
+  <time datetime="2025-02-20T03:08:05.000Z" itemprop="datePublished">2025-02-20</time>
+</a>    
+    </div>
+      
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="分享一个我用Python做的连点器"><a href="#分享一个我用Python做的连点器" class="headerlink" title="分享一个我用Python做的连点器"></a>分享一个我用Python做的连点器</h1><p>最近我用 Python 写了一个简单的连点器，使用了 <code>pyautogui</code> 和 <code>tkinter</code> 库。这个工具可以帮助你在需要时快速进行鼠标连点操作。以下是完整的实现代码和使用说明。</p>
+<h2 id="安装依赖"><a href="#安装依赖" class="headerlink" title="安装依赖"></a>安装依赖</h2><p>在运行代码之前，请确保已经安装了 <code>pyautogui</code> 库。可以通过以下命令安装：</p>
+<pre><code class="bash">pip install pyautogui
+代码实现
+以下是完整的连点器代码：
+Python
+复制
+import tkinter as tk
+from tkinter import ttk
+import threading
+import time
+import pyautogui
+
+class AutoClicker:
+    def __init__(self, root):
+        self.root = root
+        self.root.title(&quot;连点器 v1.0&quot;)
+
+        # 初始化变量
+        self.left_active = False
+        self.right_active = False
+        self.click_interval = 0.05  # 默认点击间隔
+        self.status_text = tk.StringVar(value=&quot;状态：等待中&quot;)
+
+        # 创建UI界面
+        self.create_widgets()
+
+    def create_widgets(self):
+        # 主框架
+        main_frame = ttk.Frame(self.root, padding=20)
+        main_frame.pack()
+
+        # 间隔设置
+        interval_frame = ttk.Frame(main_frame)
+        interval_frame.pack(pady=10)
+        
+        ttk.Label(interval_frame, text=&quot;点击间隔（秒）:&quot;).pack(side=tk.LEFT)
+        self.interval_entry = ttk.Entry(interval_frame, width=8)
+        self.interval_entry.insert(0, &quot;0.05&quot;)
+        self.interval_entry.pack(side=tk.LEFT, padx=5)
+
+        # 状态显示
+        status_label = ttk.Label(main_frame, textvariable=self.status_text)
+        status_label.pack(pady=5)
+
+        # 使用说明
+        help_text = &quot;&quot;&quot;使用方法：
+1. 输入点击间隔时间（秒）
+2. 按下 F1 开始左键连点
+3. 按下 F2 停止左键连点
+4. 按下 F3 开始右键连点
+5. 按下 F4 停止右键连点&quot;&quot;&quot;
+        ttk.Label(main_frame, text=help_text, justify=tk.LEFT).pack(pady=10)
+
+        # 绑定热键
+        self.root.bind(&quot;&lt;F1&gt;&quot;, self.start_left_click)
+        self.root.bind(&quot;&lt;F2&gt;&quot;, self.stop_left_click)
+        self.root.bind(&quot;&lt;F3&gt;&quot;, self.start_right_click)
+        self.root.bind(&quot;&lt;F4&gt;&quot;, self.stop_right_click)
+
+    def start_left_click(self, event):
+        try:
+            interval = float(self.interval_entry.get())
+            if interval &lt;= 0:
+                raise ValueError
+        except ValueError:
+            interval = 0.05
+        
+        if not self.left_active:
+            self.left_active = True
+            self.click_thread = ClickThread(&quot;left&quot;, interval, lambda: self.left_active)
+            self.click_thread.start()
+            self.status_text.set(&quot;状态：左键连点中...&quot;)
+
+    def stop_left_click(self, event):
+        self.left_active = False
+        self.status_text.set(&quot;状态：等待中&quot;)
+
+    def start_right_click(self, event):
+        try:
+            interval = float(self.interval_entry.get())
+            if interval &lt;= 0:
+                raise ValueError
+        except ValueError:
+            interval = 0.05
+        
+        if not self.right_active:
+            self.right_active = True
+            self.click_thread = ClickThread(&quot;right&quot;, interval, lambda: self.right_active)
+            self.click_thread.start()
+            self.status_text.set(&quot;状态：右键连点中...&quot;)
+
+    def stop_right_click(self, event):
+        self.right_active = False
+        self.status_text.set(&quot;状态：等待中&quot;)
+
+
+class ClickThread(threading.Thread):
+    def __init__(self, button_type, interval, active_check):
+        super().__init__()
+        self.button_type = button_type
+        self.interval = interval
+        self.active_check = active_check
+        self.daemon = True
+
+    def run(self):
+        while self.active_check():
+            if self.button_type == &quot;left&quot;:
+                pyautogui.click(button=&quot;left&quot;)
+            elif self.button_type == &quot;right&quot;:
+                pyautogui.click(button=&quot;right&quot;)
+            time.sleep(self.interval)
+
+
+if __name__ == &quot;__main__&quot;:
+    root = tk.Tk()
+    app = AutoClicker(root)
+    root.mainloop()
+使用方法
+以下是连点器的使用说明：
+按下 F1：开始左键连点。
+按下 F2：停止左键连点。
+按下 F3：开始右键连点。
+按下 F4：停止右键连点。
+您可以通过修改“点击间隔”输入框中的值来调整点击的频率（单位为秒）。
+希望这个工具对您有所帮助！如果有任何问题或改进建议，欢迎随时与我交流。
+感谢您的阅读！
+### 说明：
+1. **Frontmatter**：文件开头的`---`部分包含了文章的元数据，如标题、日期和标签。
+2. **代码块**：代码部分使用了Markdown的代码块格式，方便读者复制和查看。
+3. **使用说明**：在文章最后，我添加了简洁的使用说明，方便读者快速上手。
+</code></pre>
+ 
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <footer class="article-footer">
+       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/PyAutoGUI/" rel="tag">PyAutoGUI</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%BF%9E%E7%82%B9%E5%99%A8/" rel="tag">连点器</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+   
+  
+</article>
+
+    
+    <article
   id="post-“我的第一篇文章”"
   class="article article-type-post"
   itemscope
